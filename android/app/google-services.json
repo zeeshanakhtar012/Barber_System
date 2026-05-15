@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "446417756160",
+    "project_id": "backendprc01",
+    "storage_bucket": "backendprc01.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:446417756160:android:ed954ea0bcd3521f3378e5",
+        "android_client_info": {
+          "package_name": "com.barbersaas.barber_saas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAa9xTbneil_m75cl1G3gYm8vyv1o8aRM0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:446417756160:android:8460a6d094ab57be3378e5",
+        "android_client_info": {
+          "package_name": "com.example.backendprc01"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAa9xTbneil_m75cl1G3gYm8vyv1o8aRM0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
