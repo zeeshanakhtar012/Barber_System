@@ -5,6 +5,7 @@ import 'package:barber_saas/core/network/api_client.dart';
 import 'package:barber_saas/data/models/shop_model.dart';
 import 'package:barber_saas/data/models/service_model.dart';
 import 'package:barber_saas/data/models/appointment_model.dart';
+import 'package:barber_saas/data/models/user_model.dart';
 
 class BarberController extends GetxController {
   final ApiClient _api = Get.find<ApiClient>();
@@ -162,6 +163,51 @@ class BarberController extends GetxController {
       }
     } catch (e) {
       Get.snackbar('Error', 'Failed to update settings: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> updateBrandingAndProfile(String shopName, String shopLogo, String adminName, String adminAvatar) async {
+    if (currentShop.value == null) return;
+    try {
+      isLoading.value = true;
+      
+      // 1. Update Shop Name & Logo
+      final shopRes = await _api.patch('/shops/${currentShop.value!.id}', data: {
+        'name': shopName,
+        'logo': shopLogo,
+      });
+      
+      // 2. Update Admin Name & Avatar
+      final userRes = await _api.patch('/shops/${currentShop.value!.id}/admin', data: {
+        'name': adminName,
+        'avatar': adminAvatar,
+      });
+
+      if (shopRes.statusCode == 200 && userRes.statusCode == 200) {
+        Get.snackbar('Success', 'Profile & branding updated successfully.');
+        
+        // Reload shop
+        _loadShop(currentShop.value!.id);
+        
+        // Refresh local current user object in AuthController
+        final updatedUser = _authController.currentUser.value;
+        if (updatedUser != null) {
+          _authController.currentUser.value = UserModel(
+            id: updatedUser.id,
+            shopId: updatedUser.shopId,
+            role: updatedUser.role,
+            name: adminName,
+            email: updatedUser.email,
+            phone: updatedUser.phone,
+            password: updatedUser.password,
+            avatar: adminAvatar,
+          );
+        }
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to update profile & branding: $e');
     } finally {
       isLoading.value = false;
     }
