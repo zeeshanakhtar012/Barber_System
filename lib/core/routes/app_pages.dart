@@ -8,7 +8,6 @@ import 'package:barber_saas/features/auth/views/forgot_password_view.dart';
 import 'package:barber_saas/features/super_admin/bindings/super_admin_binding.dart';
 import 'package:barber_saas/features/super_admin/views/super_admin_dashboard_view.dart';
 import 'package:barber_saas/features/barber/bindings/barber_binding.dart';
-import 'package:barber_saas/features/barber/bindings/barber_binding.dart';
 import 'package:barber_saas/features/barber/views/barber_dashboard_view.dart';
 import 'package:barber_saas/features/customer/bindings/customer_binding.dart';
 import 'package:barber_saas/features/customer/views/customer_dashboard_view.dart';

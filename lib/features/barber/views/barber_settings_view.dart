@@ -28,6 +28,7 @@ class BarberSettingsView extends GetView<BarberController> {
     }
 
     return Container(
+      height: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF1E1E2C), Color(0xFF2D2D44)],
@@ -42,34 +43,67 @@ class BarberSettingsView extends GetView<BarberController> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Shop Settings', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text(
+                'Shop Settings',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 24),
-              _buildTextField(openTimeCtrl, 'Opening Time (e.g. 09:00)', Icons.access_time),
+              _buildTextField(
+                openTimeCtrl,
+                'Opening Time (e.g. 09:00)',
+                Icons.access_time,
+              ),
               const SizedBox(height: 16),
-              _buildTextField(closeTimeCtrl, 'Closing Time (e.g. 18:00)', Icons.access_time_filled),
+              _buildTextField(
+                closeTimeCtrl,
+                'Closing Time (e.g. 18:00)',
+                Icons.access_time_filled,
+              ),
               const SizedBox(height: 16),
-              _buildTextField(maxQueueCtrl, 'Max Queue Capacity', Icons.people_alt, isNumber: true),
+              _buildTextField(
+                maxQueueCtrl,
+                'Max Queue Capacity',
+                Icons.people_alt,
+                isNumber: true,
+              ),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
-                child: Obx(() => ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Obx(
+                  () => ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : () {
+                            controller.updateShopSettings(
+                              openTimeCtrl.text.trim(),
+                              closeTimeCtrl.text.trim(),
+                              int.tryParse(maxQueueCtrl.text.trim()) ?? 10,
+                            );
+                          },
+                    child: controller.isLoading.value
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.black,
+                            ),
+                          )
+                        : const Text(
+                            'Save Settings',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                   ),
-                  onPressed: controller.isLoading.value ? null : () {
-                    controller.updateShopSettings(
-                      openTimeCtrl.text.trim(),
-                      closeTimeCtrl.text.trim(),
-                      int.tryParse(maxQueueCtrl.text.trim()) ?? 10,
-                    );
-                  },
-                  child: controller.isLoading.value 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black))
-                    : const Text('Save Settings', style: TextStyle(fontWeight: FontWeight.bold)),
-                )),
-              )
+                ),
+              ),
             ],
           ),
         ),
@@ -77,7 +111,12 @@ class BarberSettingsView extends GetView<BarberController> {
     );
   }
 
-  Widget _buildTextField(TextEditingController textController, String label, IconData icon, {bool isNumber = false}) {
+  Widget _buildTextField(
+    TextEditingController textController,
+    String label,
+    IconData icon, {
+    bool isNumber = false,
+  }) {
     return TextField(
       controller: textController,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,

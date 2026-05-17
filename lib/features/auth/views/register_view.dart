@@ -11,6 +11,8 @@ class RegisterView extends GetView<AuthController> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
+  final RxBool _obscurePassword = true.obs;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -57,7 +59,7 @@ class RegisterView extends GetView<AuthController> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
+                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.amber,
                             foregroundColor: Colors.black,
                             shape: RoundedRectangleBorder(
@@ -94,9 +96,39 @@ class RegisterView extends GetView<AuthController> {
   }
 
   Widget _buildTextField(TextEditingController textController, String label, IconData icon, {bool isPassword = false}) {
+    if (isPassword) {
+      return Obx(
+        () => TextField(
+          controller: textController,
+          obscureText: _obscurePassword.value,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: const TextStyle(color: Colors.white70),
+            prefixIcon: Icon(icon, color: Colors.white70),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword.value ? Icons.visibility_off : Icons.visibility,
+                color: Colors.white70,
+              ),
+              onPressed: () => _obscurePassword.toggle(),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.white30),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.amber),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      );
+    }
+
     return TextField(
       controller: textController,
-      obscureText: isPassword,
+      obscureText: false,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,

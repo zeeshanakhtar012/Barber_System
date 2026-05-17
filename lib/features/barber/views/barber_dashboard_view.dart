@@ -17,8 +17,17 @@ class BarberDashboardView extends GetView<BarberController> {
     final RxInt currentIndex = 0.obs;
 
     return Scaffold(
+      backgroundColor: const Color(0xFF1E1E2C),
       appBar: AppBar(
-        title: Obx(() => Text(controller.currentShop.value?.name ?? 'Barber Dashboard', style: const TextStyle(fontWeight: FontWeight.bold))),
+        title: Obx(
+          () => Text(
+            controller.currentShop.value?.name ?? 'Barber Dashboard',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
         backgroundColor: const Color(0xFF1E1E2C),
         elevation: 0,
         actions: [
@@ -29,47 +38,74 @@ class BarberDashboardView extends GetView<BarberController> {
                 return Badge(
                   label: Text(count.toString()),
                   backgroundColor: Colors.redAccent,
-                  child: const Icon(Icons.notifications_active, color: Colors.amber),
+                  child: const Icon(
+                    Icons.notifications_active,
+                    color: Colors.amber,
+                  ),
                 );
               }
-              return const Icon(Icons.notifications_outlined, color: Colors.white70);
+              return const Icon(
+                Icons.notifications_outlined,
+                color: Colors.white70,
+              );
             }),
             onPressed: () {
-              Get.bottomSheet(const NotificationsView(), isScrollControlled: true);
+              Get.bottomSheet(
+                const NotificationsView(),
+                isScrollControlled: true,
+              );
             },
           ),
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () => Get.find<AuthController>().logout(),
-          )
+          ),
         ],
       ),
-      body: Obx(() => IndexedStack(
-        index: currentIndex.value,
-        children: [
-          _buildLiveQueueFeed(context),
-          const BarberServicesView(),
-          const BarberBreaksView(),
-          BarberSettingsView(),
-        ],
-      )),
-      bottomNavigationBar: Obx(() => Container(
-        decoration: const BoxDecoration(border: Border(top: BorderSide(color: Colors.white12, width: 1))),
-        child: BottomNavigationBar(
-          backgroundColor: const Color(0xFF1E1E2C),
-          selectedItemColor: Colors.amber,
-          unselectedItemColor: Colors.white54,
-          type: BottomNavigationBarType.fixed,
-          currentIndex: currentIndex.value,
-          onTap: (index) => currentIndex.value = index,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.people_alt), label: 'Queue'),
-            BottomNavigationBarItem(icon: Icon(Icons.design_services), label: 'Services'),
-            BottomNavigationBarItem(icon: Icon(Icons.pause_circle_filled), label: 'Breaks'),
-            BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+      body: Obx(
+        () => IndexedStack(
+          index: currentIndex.value,
+          children: [
+            _buildLiveQueueFeed(context),
+            const BarberServicesView(),
+            const BarberBreaksView(),
+            BarberSettingsView(),
           ],
         ),
-      )),
+      ),
+      bottomNavigationBar: Obx(
+        () => Container(
+          decoration: const BoxDecoration(
+            border: Border(top: BorderSide(color: Colors.white12, width: 1)),
+          ),
+          child: BottomNavigationBar(
+            backgroundColor: const Color(0xFF1E1E2C),
+            selectedItemColor: Colors.amber,
+            unselectedItemColor: Colors.white54,
+            type: BottomNavigationBarType.fixed,
+            currentIndex: currentIndex.value,
+            onTap: (index) => currentIndex.value = index,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.people_alt),
+                label: 'Queue',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.design_services),
+                label: 'Services',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.pause_circle_filled),
+                label: 'Breaks',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings),
+                label: 'Settings',
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -88,7 +124,12 @@ class BarberDashboardView extends GetView<BarberController> {
           Expanded(
             child: Obx(() {
               if (controller.todayQueue.isEmpty) {
-                return const Center(child: Text('Queue is empty. Relax!', style: TextStyle(color: Colors.white70)));
+                return const Center(
+                  child: Text(
+                    'Queue is empty. Relax!',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                );
               }
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -101,20 +142,52 @@ class BarberDashboardView extends GetView<BarberController> {
                       opacity: 0.15,
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: appointment.status == 'in_progress' ? Colors.greenAccent : Colors.amber,
-                          child: Text('${index + 1}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                          backgroundColor: appointment.status == 'in_progress'
+                              ? Colors.greenAccent
+                              : Colors.amber,
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                        title: Text('Customer ${appointment.customerId.substring(0, 5)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        subtitle: Text('${appointment.totalDuration} mins • ${appointment.status.toUpperCase()}', style: const TextStyle(color: Colors.white70)),
+                        title: Text(
+                          'Customer ${appointment.customerId.substring(0, 5)}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${appointment.totalDuration} mins • ${appointment.status.toUpperCase()}',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
                         trailing: PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert, color: Colors.white),
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Colors.white,
+                          ),
                           onSelected: (value) {
-                            controller.updateAppointmentStatus(appointment.id, value);
+                            controller.updateAppointmentStatus(
+                              appointment.id,
+                              value,
+                            );
                           },
                           itemBuilder: (context) => [
-                            const PopupMenuItem(value: 'in_progress', child: Text('Start Service')),
-                            const PopupMenuItem(value: 'completed', child: Text('Mark Completed')),
-                            const PopupMenuItem(value: 'no_show', child: Text('No Show')),
+                            const PopupMenuItem(
+                              value: 'in_progress',
+                              child: Text('Start Service'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'completed',
+                              child: Text('Mark Completed'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'no_show',
+                              child: Text('No Show'),
+                            ),
                           ],
                         ),
                       ),
@@ -143,31 +216,46 @@ class BarberDashboardView extends GetView<BarberController> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Shop Status', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                const Text(
+                  'Shop Status',
+                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                ),
                 const SizedBox(height: 4),
-                Text(shop.status, style: TextStyle(
-                  color: shop.status == 'OPEN' ? Colors.greenAccent : shop.status == 'BREAK' ? Colors.amber : Colors.redAccent,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                )),
+                Text(
+                  shop.status,
+                  style: TextStyle(
+                    color: shop.status == 'OPEN'
+                        ? Colors.greenAccent
+                        : shop.status == 'BREAK'
+                        ? Colors.amber
+                        : Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
               ],
             ),
             DropdownButton<String>(
               dropdownColor: const Color(0xFF2D2D44),
               value: shop.status,
-              items: ['OPEN', 'BREAK', 'CLOSED', 'BUSY'].map((s) => DropdownMenuItem(
-                value: s,
-                child: Text(s, style: const TextStyle(color: Colors.white)),
-              )).toList(),
+              items: ['OPEN', 'BREAK', 'CLOSED', 'BUSY']
+                  .map(
+                    (s) => DropdownMenuItem(
+                      value: s,
+                      child: Text(
+                        s,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  )
+                  .toList(),
               onChanged: (val) {
                 if (val != null) controller.updateShopStatus(val);
               },
-            )
+            ),
           ],
         ),
       );
     });
   }
 }
-
-

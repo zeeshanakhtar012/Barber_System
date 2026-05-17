@@ -1,10 +1,10 @@
 import 'package:get/get.dart';
 import 'package:barber_saas/data/models/notification_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:barber_saas/core/network/api_client.dart';
 import 'package:barber_saas/features/auth/controllers/auth_controller.dart';
 
 class NotificationService extends GetxService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ApiClient _apiClient = Get.find<ApiClient>();
   final AuthController _authController = Get.find<AuthController>();
 
   final RxList<NotificationModel> notifications = <NotificationModel>[].obs;
@@ -13,23 +13,9 @@ class NotificationService extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    _listenToNotifications();
-  }
-
-  void _listenToNotifications() {
-    // Listen to current user changes
     ever(_authController.currentUser, (user) {
       if (user != null) {
-        notifications.bindStream(
-          _firestore.collection('notifications')
-              .where('userId', isEqualTo: user.id)
-              .orderBy('createdAt', descending: true)
-              .snapshots().map((snapshot) {
-                final notifs = snapshot.docs.map((doc) => NotificationModel.fromJson(doc.data(), doc.id)).toList();
-                unreadCount.value = notifs.where((n) => !n.isRead).length;
-                return notifs;
-              })
-        );
+        _fetchNotifications(user.id);
       } else {
         notifications.clear();
         unreadCount.value = 0;
@@ -37,8 +23,26 @@ class NotificationService extends GetxService {
     });
   }
 
+  Future<void> _fetchNotifications(String userId) async {
+    try {
+      final response = await _apiClient.get('/notifications', queryParameters: {'userId': userId});
+      final List<dynamic> data = response.data is Map ? response.data['data'] : response.data;
+      final List<NotificationModel> notifs = data
+          .map((json) => NotificationModel.fromJson(json as Map<String, dynamic>, json['_id'] ?? ''))
+          .toList();
+      notifications.assignAll(notifs);
+      unreadCount.value = notifs.where((n) => !n.isRead).length;
+    } catch (e) {
+      // TODO: handle error appropriately (e.g., logging)
+    }
+  }
+
   Future<void> markAsRead(String notificationId) async {
-    await _firestore.collection('notifications').doc(notificationId).update({'isRead': true});
+    await _apiClient.patch('/notifications/$notificationId', data: {'isRead': true});
+    final user = _authController.currentUser.value;
+    if (user != null) {
+      _fetchNotifications(user.id);
+    }
   }
 
   Future<void> markAllAsRead() async {
@@ -48,12 +52,9 @@ class NotificationService extends GetxService {
     }
   }
 
-  // This would typically be triggered by a Cloud Function in a real production environment
-  // We include it here to demonstrate the architecture
   Future<void> sendLocalMockNotification(String title, String body, String userId, String role) async {
-    final ref = _firestore.collection('notifications').doc();
     final notif = NotificationModel(
-      id: ref.id,
+      id: '',
       userId: userId,
       role: role,
       title: title,
@@ -62,7 +63,7 @@ class NotificationService extends GetxService {
       isRead: false,
       createdAt: DateTime.now(),
     );
-    await ref.set(notif.toJson());
+    await _apiClient.post('/notifications', data: notif.toJson());
     Get.snackbar('New Notification', title, snackPosition: SnackPosition.TOP);
   }
 }

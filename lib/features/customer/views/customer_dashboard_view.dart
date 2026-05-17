@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:barber_saas/features/auth/controllers/auth_controller.dart';
 import 'package:barber_saas/features/customer/controllers/customer_controller.dart';
-import 'package:barber_saas/features/customer/controllers/customer_controller.dart';
 import 'package:barber_saas/features/customer/views/my_bookings_view.dart';
 import 'package:barber_saas/shared/views/notifications_view.dart';
 import 'package:barber_saas/core/services/notification_service.dart';

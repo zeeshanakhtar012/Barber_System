@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barber_saas/data/models/user_model.dart';
 import 'package:barber_saas/data/providers/storage_provider.dart';
+import 'package:barber_saas/core/network/api_client.dart';
 import 'package:barber_saas/core/routes/app_routes.dart';
 
 class AuthController extends GetxController {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final StorageProvider _storage = Get.put(StorageProvider());
+  final ApiClient _api = Get.find<ApiClient>();
+  final StorageProvider _storage = Get.find<StorageProvider>();
 
   final Rx<UserModel?> currentUser = Rx<UserModel?>(null);
   final RxBool isLoading = false.obs;
@@ -34,21 +34,17 @@ class AuthController extends GetxController {
 
   Future<void> fetchUserData(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
-      if (doc.exists) {
-        UserModel userModel = UserModel.fromJson(doc.data() as Map<String, dynamic>, doc.id);
+      final res = await _api.get('/auth/me');
+      if (res.statusCode == 200) {
+        UserModel userModel = UserModel.fromJson(res.data['data'], res.data['data']['_id']);
         currentUser.value = userModel;
-        
-        _storage.saveSession('dummy_token', userModel.id, userModel.role);
-        
         _navigateBasedOnRole(userModel.role);
       } else {
-        // If user document doesn't exist (e.g. first time login but doc creation failed)
         await logout();
       }
     } catch (e) {
       debugPrint('LOG [Auth Error]: Failed to fetch user data: $e');
-      Get.snackbar('Error', 'Failed to fetch user data: $e');
+      await logout();
     } finally {
       isLoading.value = false;
     }
@@ -73,38 +69,28 @@ class AuthController extends GetxController {
     final cleanEmail = email.toLowerCase().trim();
     final cleanPassword = password.trim();
     try {
-      debugPrint('LOG [Auth]: Attempting Custom Login for email: "$cleanEmail" with password: "$cleanPassword"');
+      debugPrint('LOG [Auth]: Attempting REST API Login for email: "$cleanEmail"');
       isLoading.value = true;
       
-      // DEBUG: First fetch just the email to see what is stored in the database
-      final debugSnapshot = await _firestore.collection('users').where('email', isEqualTo: cleanEmail).get();
-      if (debugSnapshot.docs.isEmpty) {
-        debugPrint('LOG [Auth Debug]: NO USER FOUND WITH EMAIL "$cleanEmail"');
-      } else {
-        final docData = debugSnapshot.docs.first.data();
-        debugPrint('LOG [Auth Debug]: Found user! Stored email: "${docData['email']}", Stored password: "${docData['password']}"');
-      }
+      final res = await _api.post('/auth/login', data: {
+        'email': cleanEmail,
+        'password': cleanPassword,
+      });
 
-      final snapshot = await _firestore.collection('users')
-          .where('email', isEqualTo: cleanEmail)
-          .where('password', isEqualTo: cleanPassword)
-          .limit(1)
-          .get();
-
-      if (snapshot.docs.isNotEmpty) {
-        debugPrint('LOG [Auth]: Firestore Auth successful, saving session...');
-        UserModel userModel = UserModel.fromJson(snapshot.docs.first.data(), snapshot.docs.first.id);
+      if (res.statusCode == 200) {
+        final data = res.data['data'];
+        final token = data['token'];
+        final userData = data['user'];
+        
+        UserModel userModel = UserModel.fromJson(userData, userData['_id']);
         currentUser.value = userModel;
         
-        await _storage.saveSession('dummy_token', userModel.id, userModel.role);
+        await _storage.saveSession(token, userModel.id, userModel.role);
         _navigateBasedOnRole(userModel.role);
-      } else {
-        debugPrint('LOG [Auth Error]: Login failed: Invalid email or password');
-        Get.snackbar('Login Failed', 'Invalid email or password');
       }
     } catch (e) {
       debugPrint('LOG [Auth Error]: Login failed with exception: $e');
-      Get.snackbar('Login Failed', e.toString());
+      Get.snackbar('Login Failed', 'Invalid email or password');
     } finally {
       isLoading.value = false;
     }
@@ -115,42 +101,28 @@ class AuthController extends GetxController {
     try {
       isLoading.value = true;
       
-      // Check if email already exists globally in Firestore
-      final existingUsers = await _firestore.collection('users').where('email', isEqualTo: cleanEmail).get();
-      if (existingUsers.docs.isNotEmpty) {
-        Get.snackbar('Error', 'Email already taken. Use another email.');
-        return;
-      }
+      final res = await _api.post('/auth/register', data: {
+        'name': name,
+        'email': cleanEmail,
+        'phone': phone,
+        'password': password,
+      });
 
-      DocumentReference userRef = _firestore.collection('users').doc();
-      UserModel newUser = UserModel(
-        id: userRef.id,
-        role: 'customer',
-        name: name,
-        email: cleanEmail,
-        phone: phone,
-        password: password,
-      );
-      
-      await userRef.set(newUser.toJson());
-      debugPrint('LOG [Auth]: Customer registered successfully in Firestore.');
-      Get.snackbar('Success', 'Registered successfully. Please login.');
-      Get.offAllNamed(AppRoutes.login);
+      if (res.statusCode == 201) {
+        debugPrint('LOG [Auth]: Customer registered successfully via API.');
+        Get.snackbar('Success', 'Registered successfully. Please login.');
+        Get.offAllNamed(AppRoutes.login);
+      }
     } catch (e) {
       debugPrint('LOG [Auth Error]: Registration failed: $e');
-      Get.snackbar('Registration Failed', e.toString());
+      Get.snackbar('Registration Failed', 'Email might be taken or invalid data');
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> _checkSuperAdminExists() async {
-    try {
-      final snapshot = await _firestore.collection('users').where('role', isEqualTo: 'super_admin').limit(1).get();
-      hasSuperAdmin.value = snapshot.docs.isNotEmpty;
-    } catch (e) {
-      print('Error checking super admin: $e');
-    }
+    hasSuperAdmin.value = false; // The backend throws 403 if it exists when trying to create
   }
 
   Future<void> createFirstSuperAdmin(String email, String password, String name) async {
@@ -158,29 +130,29 @@ class AuthController extends GetxController {
     try {
       isLoading.value = true;
       
-      DocumentReference userRef = _firestore.collection('users').doc();
-      UserModel superAdmin = UserModel(
-        id: userRef.id,
-        role: 'super_admin',
-        name: name,
-        email: cleanEmail,
-        phone: '',
-        password: password,
-      );
-      
-      await userRef.set(superAdmin.toJson());
-      hasSuperAdmin.value = true;
-      debugPrint('LOG [Auth]: First Super Admin created successfully in Firestore');
-      Get.snackbar('Success', 'First Super Admin created successfully');
-      
-      // Auto login the super admin
-      currentUser.value = superAdmin;
-      await _storage.saveSession('dummy_token', superAdmin.id, superAdmin.role);
-      _navigateBasedOnRole(superAdmin.role);
+      final res = await _api.post('/auth/super-admin', data: {
+        'name': name,
+        'email': cleanEmail,
+        'password': password,
+      });
 
+      if (res.statusCode == 201) {
+        hasSuperAdmin.value = true;
+        Get.snackbar('Success', 'First Super Admin created successfully');
+        
+        final data = res.data['data'];
+        final token = data['token'];
+        final userData = data['user'];
+        
+        UserModel superAdmin = UserModel.fromJson(userData, userData['_id']);
+        currentUser.value = superAdmin;
+        
+        await _storage.saveSession(token, superAdmin.id, superAdmin.role);
+        _navigateBasedOnRole(superAdmin.role);
+      }
     } catch (e) {
       debugPrint('LOG [Auth Error]: Super Admin creation failed: $e');
-      Get.snackbar('Failed', e.toString());
+      Get.snackbar('Failed', 'A Super Admin already exists or invalid data');
     } finally {
       isLoading.value = false;
     }

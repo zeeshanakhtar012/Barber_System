@@ -44,7 +44,7 @@ class MyBookingsView extends GetView<CustomerController> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(appointment.status).withOpacity(0.2),
+                            color: _getStatusColor(appointment.status).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: _getStatusColor(appointment.status)),
                           ),

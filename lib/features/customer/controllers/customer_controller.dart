@@ -1,14 +1,16 @@
+import 'dart:async';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:barber_saas/features/auth/controllers/auth_controller.dart';
+import 'package:flutter/foundation.dart';
+import 'package:barber_saas/core/network/api_client.dart';
+import 'package:barber_saas/core/network/socket_client.dart';
 import 'package:barber_saas/data/models/shop_model.dart';
 import 'package:barber_saas/data/models/service_model.dart';
 import 'package:barber_saas/data/models/appointment_model.dart';
 import 'package:barber_saas/core/config/app_config.dart';
 
 class CustomerController extends GetxController {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final AuthController _authController = Get.find<AuthController>();
+  final ApiClient _api = Get.find<ApiClient>();
+  final SocketClient _socket = Get.find<SocketClient>();
 
   final RxList<ShopModel> availableShops = <ShopModel>[].obs;
   final RxList<AppointmentModel> myAppointments = <AppointmentModel>[].obs;
@@ -31,64 +33,39 @@ class CustomerController extends GetxController {
     _loadMyAppointments();
   }
 
-  void _loadSingleTargetShop(String shopId) {
-    _firestore.collection('shops').doc(shopId).snapshots().listen((doc) {
-      if (doc.exists) {
-        final shop = ShopModel.fromJson(doc.data() as Map<String, dynamic>, doc.id);
+  void _loadSingleTargetShop(String shopId) async {
+    try {
+      final res = await _api.get('/shops/$shopId');
+        final data = res.data is Map ? res.data['data'] : res.data;
+        final shop = ShopModel.fromJson(data, data['_id']);
         selectedShop.value = shop;
-        // Automatically load services for this hardcoded shop
-        _firestore.collection('services').where('shopId', isEqualTo: shop.id).snapshots().listen((snapshot) {
-          shopServices.value = snapshot.docs.map((sDoc) => ServiceModel.fromJson(sDoc.data(), sDoc.id)).toList();
-        });
         _calculateWaitTime(shop.id);
+    } catch (e) {
+      debugPrint('Failed to load shop: $e');
+    }
+  }
+
+  Future<void> _loadAvailableShops() async {
+    try {
+      final res = await _api.get('/shops');
+      if (res.statusCode == 200) {
+        final List<dynamic> data = res.data is Map ? res.data['data'] : res.data;
+        availableShops.value = data.map((json) => ShopModel.fromJson(json, json['_id'])).toList();
       }
-    });
+    } catch (e) {
+      debugPrint('Failed to load shops: $e');
+    }
   }
 
-  void _loadAvailableShops() {
-    availableShops.bindStream(
-      _firestore.collection('shops').where('subscriptionStatus', isEqualTo: 'active').snapshots().map(
-        (snapshot) => snapshot.docs.map((doc) => ShopModel.fromJson(doc.data(), doc.id)).toList()
-      )
-    );
-  }
-
-  void _loadMyAppointments() {
-    final user = _authController.currentUser.value;
-    if (user != null) {
-      myAppointments.bindStream(
-        _firestore.collection('appointments').where('customerId', isEqualTo: user.id).snapshots().asyncMap((snapshot) async {
-          final appointments = snapshot.docs.map((doc) => AppointmentModel.fromJson(doc.data(), doc.id)).toList();
-          
-          // Calculate queue position for pending/in_progress appointments
-          for (var app in appointments) {
-            if (app.status == 'pending' || app.status == 'confirmed') {
-              final queueSnapshot = await _firestore.collection('appointments')
-                .where('shopId', isEqualTo: app.shopId)
-                .where('status', whereIn: ['pending', 'confirmed', 'in_progress'])
-                .get();
-              
-              // Simple calculation: how many appointments are estimated to start before this one
-              int pos = 1;
-              for (var qDoc in queueSnapshot.docs) {
-                final qApp = AppointmentModel.fromJson(qDoc.data(), qDoc.id);
-                if (qApp.estimatedStart.isBefore(app.estimatedStart) && qApp.id != app.id) {
-                  pos++;
-                }
-              }
-              // Mutate the local model for UI rendering
-              final updatedApp = AppointmentModel(
-                id: app.id, shopId: app.shopId, customerId: app.customerId,
-                services: app.services, status: app.status, queuePosition: pos,
-                estimatedStart: app.estimatedStart, estimatedEnd: app.estimatedEnd,
-                totalDuration: app.totalDuration, totalPrice: app.totalPrice
-              );
-              appointments[appointments.indexOf(app)] = updatedApp;
-            }
-          }
-          return appointments;
-        })
-      );
+  Future<void> _loadMyAppointments() async {
+    try {
+      final res = await _api.get('/appointments/me');
+      if (res.statusCode == 200) {
+        final List<dynamic> data = res.data is Map ? res.data['data'] : res.data;
+        myAppointments.value = data.map((json) => AppointmentModel.fromJson(json, json['_id'])).toList();
+      }
+    } catch (e) {
+      debugPrint('Failed to load appointments: $e');
     }
   }
 
@@ -96,9 +73,9 @@ class CustomerController extends GetxController {
     selectedShop.value = shop;
     selectedServices.clear();
     
-    // Load Services for shop
-    final snapshot = await _firestore.collection('services').where('shopId', isEqualTo: shop.id).get();
-    shopServices.value = snapshot.docs.map((doc) => ServiceModel.fromJson(doc.data(), doc.id)).toList();
+    // In MVP, services are hardcoded or fetched from another API route. We skip fetching for now since we didn't build a services API module yet.
+    // Let's connect socket to listen to shop queue updates
+    _socket.connectQueue(shop.id);
     
     _calculateWaitTime(shop.id);
   }
@@ -111,57 +88,35 @@ class CustomerController extends GetxController {
     }
   }
 
-  void _calculateWaitTime(String shopId) {
-    // Dynamic realtime estimation
-    // For simplicity: fetch current pending queue, sum up durations
-    _firestore.collection('appointments')
-      .where('shopId', isEqualTo: shopId)
-      .where('status', whereIn: ['pending', 'confirmed', 'in_progress'])
-      .snapshots().listen((snapshot) {
-        int totalWait = 0;
-        for (var doc in snapshot.docs) {
-          final data = doc.data();
-          totalWait += (data['totalDuration'] as int?) ?? 30;
-        }
-        estimatedWaitTime.value = totalWait;
-    });
+  Future<void> _calculateWaitTime(String shopId) async {
+    try {
+      final res = await _api.get('/queue/shop/$shopId');
+        final data = res.data is Map ? res.data['data'] : res.data;
+        estimatedWaitTime.value = data['estimatedWaitTimeMinutes'] ?? 0;
+    } catch (e) {
+      debugPrint('Failed to get wait time: $e');
+    }
   }
 
   Future<void> bookAppointment() async {
-    if (selectedShop.value == null || selectedServices.isEmpty) return;
+    if (selectedShop.value == null) return;
     
-    final user = _authController.currentUser.value;
-    if (user == null) return;
-
     try {
       isLoading.value = true;
       
-      int totalDuration = selectedServices.fold(0, (sum, item) => sum + item.duration);
-      double totalPrice = selectedServices.fold(0.0, (sum, item) => sum + item.price);
-      
-      final now = DateTime.now();
-      final estStart = now.add(Duration(minutes: estimatedWaitTime.value));
-      final estEnd = estStart.add(Duration(minutes: totalDuration));
+      final res = await _api.post('/appointments', data: {
+        'shopId': selectedShop.value!.id,
+        'scheduledDate': DateTime.now().toIso8601String(),
+        'estimatedDuration': 30, // Default MVP
+      });
 
-      DocumentReference ref = _firestore.collection('appointments').doc();
-      AppointmentModel newAppointment = AppointmentModel(
-        id: ref.id,
-        shopId: selectedShop.value!.id,
-        customerId: user.id,
-        services: selectedServices.toList(),
-        status: 'pending',
-        queuePosition: 0, // Should be calculated by cloud function or more complex transaction
-        estimatedStart: estStart,
-        estimatedEnd: estEnd,
-        totalDuration: totalDuration,
-        totalPrice: totalPrice,
-      );
-
-      await ref.set(newAppointment.toJson());
-      Get.back();
-      Get.snackbar('Success', 'Appointment Booked!');
+      if (res.statusCode == 201) {
+        Get.back();
+        Get.snackbar('Success', 'Appointment Booked!');
+        _loadMyAppointments();
+      }
     } catch (e) {
-      Get.snackbar('Error', e.toString());
+      Get.snackbar('Error', 'Could not book appointment');
     } finally {
       isLoading.value = false;
     }
@@ -169,8 +124,11 @@ class CustomerController extends GetxController {
 
   Future<void> cancelAppointment(String appointmentId) async {
     try {
-      await _firestore.collection('appointments').doc(appointmentId).update({'status': 'cancelled'});
-      Get.snackbar('Cancelled', 'Your booking has been cancelled.');
+      final res = await _api.patch('/appointments/$appointmentId/status', data: {'status': 'cancelled'});
+      if (res.statusCode == 200) {
+        Get.snackbar('Cancelled', 'Your booking has been cancelled.');
+        _loadMyAppointments();
+      }
     } catch (e) {
       Get.snackbar('Error', 'Could not cancel booking: $e');
     }

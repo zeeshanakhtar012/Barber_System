@@ -1,12 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barber_saas/features/auth/controllers/auth_controller.dart';
+import 'package:barber_saas/core/network/api_client.dart';
 import 'package:barber_saas/data/models/shop_model.dart';
 import 'package:barber_saas/data/models/service_model.dart';
 import 'package:barber_saas/data/models/appointment_model.dart';
 
 class BarberController extends GetxController {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ApiClient _api = Get.find<ApiClient>();
   final AuthController _authController = Get.find<AuthController>();
 
   final Rx<ShopModel?> currentShop = Rx<ShopModel?>(null);
@@ -21,79 +22,106 @@ class BarberController extends GetxController {
     _loadBarberData();
   }
 
-  void _loadBarberData() {
+  void _loadBarberData() async {
     final user = _authController.currentUser.value;
     if (user != null && user.shopId != null) {
-      currentShop.bindStream(_getShopStream(user.shopId!));
-      services.bindStream(_getServicesStream(user.shopId!));
-      todayQueue.bindStream(_getTodayQueueStream(user.shopId!));
+      await _loadShop(user.shopId!);
+      await _loadServices(user.shopId!);
+      await _loadTodayQueue(user.shopId!);
     }
   }
 
-  Stream<ShopModel> _getShopStream(String shopId) {
-    return _firestore.collection('shops').doc(shopId).snapshots().map(
-      (doc) => ShopModel.fromJson(doc.data() as Map<String, dynamic>, doc.id)
-    );
+  Future<void> _loadShop(String shopId) async {
+    try {
+      final res = await _api.get('/shops/$shopId');
+      if (res.statusCode == 200) {
+        currentShop.value = ShopModel.fromJson(res.data['data'], res.data['data']['_id']);
+      }
+    } catch (e) {
+      debugPrint('Failed to load shop: $e');
+    }
   }
 
-  Stream<List<ServiceModel>> _getServicesStream(String shopId) {
-    return _firestore.collection('services').where('shopId', isEqualTo: shopId).snapshots().map(
-      (snapshot) => snapshot.docs.map((doc) => ServiceModel.fromJson(doc.data(), doc.id)).toList()
-    );
+  Future<void> _loadServices(String shopId) async {
+    try {
+      final res = await _api.get('/services/shop/$shopId');
+      if (res.statusCode == 200) {
+        final List<dynamic> data = res.data['data'];
+        services.value = data.map((json) => ServiceModel.fromJson(json, json['_id'])).toList();
+      }
+    } catch (e) {
+      debugPrint('Failed to load services: $e');
+    }
   }
 
-  Stream<List<AppointmentModel>> _getTodayQueueStream(String shopId) {
-    // Basic filter for today's queue
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day).toIso8601String();
-    
-    return _firestore.collection('appointments')
-        .where('shopId', isEqualTo: shopId)
-        .where('estimatedStart', isGreaterThanOrEqualTo: startOfDay)
-        .orderBy('estimatedStart')
-        .snapshots().map(
-      (snapshot) => snapshot.docs.map((doc) => AppointmentModel.fromJson(doc.data(), doc.id)).toList()
-    );
+  Future<void> _loadTodayQueue(String shopId) async {
+    try {
+      final res = await _api.get('/appointments/shop/$shopId/today');
+      if (res.statusCode == 200) {
+        final List<dynamic> data = res.data['data'];
+        todayQueue.value = data.map((json) => AppointmentModel.fromJson(json, json['_id'])).toList();
+      }
+    } catch (e) {
+      debugPrint('Failed to load today queue: $e');
+    }
   }
 
   Future<void> updateShopStatus(String newStatus) async {
     if (currentShop.value == null) return;
-    await _firestore.collection('shops').doc(currentShop.value!.id).update({'status': newStatus});
+    try {
+      final res = await _api.patch('/shops/${currentShop.value!.id}/status', data: {'status': newStatus});
+      if (res.statusCode == 200) {
+        _loadShop(currentShop.value!.id);
+      }
+    } catch (e) {
+      debugPrint('Failed to update shop status: $e');
+    }
   }
 
   Future<void> addService(String name, int duration, double price) async {
     if (currentShop.value == null) return;
     try {
       isLoading.value = true;
-      DocumentReference ref = _firestore.collection('services').doc();
-      ServiceModel newService = ServiceModel(
-        id: ref.id,
-        shopId: currentShop.value!.id,
-        name: name,
-        duration: duration,
-        price: price,
-      );
-      await ref.set(newService.toJson());
+      final res = await _api.post('/services', data: {
+        'shopId': currentShop.value!.id,
+        'name': name,
+        'duration': duration,
+        'price': price,
+      });
+      if (res.statusCode == 201) {
+        _loadServices(currentShop.value!.id);
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to add service: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
   Future<void> updateAppointmentStatus(String appointmentId, String newStatus) async {
-    await _firestore.collection('appointments').doc(appointmentId).update({'status': newStatus});
-    // Trigger queue recalculation cloud function or logic here if needed
+    try {
+      final res = await _api.patch('/appointments/$appointmentId/status', data: {'status': newStatus});
+      if (res.statusCode == 200) {
+        _loadTodayQueue(currentShop.value!.id);
+      }
+    } catch (e) {
+      debugPrint('Failed to update appointment status: $e');
+    }
   }
 
   Future<void> updateShopSettings(String openingTime, String closingTime, int maxQueue) async {
     if (currentShop.value == null) return;
     try {
       isLoading.value = true;
-      await _firestore.collection('shops').doc(currentShop.value!.id).update({
+      final res = await _api.patch('/shops/${currentShop.value!.id}/settings', data: {
         'openingTime': openingTime,
         'closingTime': closingTime,
         'maxQueue': maxQueue,
       });
-      Get.snackbar('Success', 'Shop settings updated.');
+      if (res.statusCode == 200) {
+        Get.snackbar('Success', 'Shop settings updated.');
+        _loadShop(currentShop.value!.id);
+      }
     } catch (e) {
       Get.snackbar('Error', 'Failed to update settings: $e');
     } finally {
