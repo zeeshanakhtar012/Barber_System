@@ -75,71 +75,84 @@ class BarberServicesView extends GetView<BarberController> {
                   final hasImage = service.images.isNotEmpty;
 
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
+                    padding: const EdgeInsets.only(bottom: 8.0),
                     child: GlassContainer(
                       opacity: 0.1,
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(12),
-                        leading: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.black26,
-                            borderRadius: BorderRadius.circular(8),
-                            image: hasImage
-                                ? DecorationImage(
-                                    image: NetworkImage(service.images.first),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
-                          ),
-                          child: !hasImage
-                              ? const Icon(Icons.cut, color: Colors.amber, size: 28)
-                              : null,
-                        ),
-                        title: Text(
-                          service.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        child: Row(
                           children: [
-                            const SizedBox(height: 4),
-                            Text(
-                              '${service.duration} mins',
-                              style: const TextStyle(color: Colors.white70, fontSize: 13),
-                            ),
-                            if (service.images.length > 1) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                '+${service.images.length - 1} more images',
-                                style: const TextStyle(color: Colors.amber, fontSize: 11),
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.black26,
+                                borderRadius: BorderRadius.circular(6),
+                                image: hasImage
+                                    ? DecorationImage(
+                                        image: NetworkImage(service.images.first),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
-                            ]
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
+                              child: !hasImage
+                                  ? const Icon(Icons.cut, color: Colors.amber, size: 20)
+                                  : null,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    service.name,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        '${service.duration} mins',
+                                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                      ),
+                                      if (service.images.length > 1) ...[
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '+${service.images.length - 1} photos',
+                                          style: const TextStyle(color: Colors.amber, fontSize: 10),
+                                        ),
+                                      ]
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             Text(
                               '\$${service.price.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 color: Colors.amber,
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 4),
                             IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
+                              icon: const Icon(Icons.edit, color: Colors.white70, size: 18),
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(6),
                               onPressed: () => _showServiceDialog(context, service: service),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
+                              icon: const Icon(Icons.delete, color: Colors.redAccent, size: 18),
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.all(6),
                               onPressed: () => _showDeleteConfirmation(service),
                             ),
                           ],

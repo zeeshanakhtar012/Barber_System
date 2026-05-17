@@ -327,15 +327,15 @@ class CustomerDashboardView extends GetView<CustomerController> {
                       final hasImage = service.images.isNotEmpty;
 
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
+                        padding: const EdgeInsets.only(bottom: 6.0),
                         child: InkWell(
                           onTap: () => controller.toggleService(service),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                           child: Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             decoration: BoxDecoration(
                               color: isSelected ? Colors.amber.withOpacity(0.12) : Colors.black12,
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(8),
                               border: Border.all(
                                 color: isSelected ? Colors.amber : Colors.white10,
                                 width: 1,
@@ -344,10 +344,10 @@ class CustomerDashboardView extends GetView<CustomerController> {
                             child: Row(
                               children: [
                                 ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   child: Container(
-                                    width: 50,
-                                    height: 50,
+                                    width: 38,
+                                    height: 38,
                                     color: Colors.black26,
                                     child: hasImage
                                         ? Image.network(
@@ -356,17 +356,17 @@ class CustomerDashboardView extends GetView<CustomerController> {
                                             errorBuilder: (_, __, ___) => const Icon(
                                               Icons.cut,
                                               color: Colors.amber,
-                                              size: 20,
+                                              size: 16,
                                             ),
                                           )
                                         : const Icon(
                                             Icons.cut,
                                             color: Colors.amber,
-                                            size: 20,
+                                            size: 16,
                                           ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,15 +376,17 @@ class CustomerDashboardView extends GetView<CustomerController> {
                                         style: TextStyle(
                                           color: isSelected ? Colors.amber : Colors.white,
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 14,
+                                          fontSize: 13,
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(height: 2),
+                                      const SizedBox(height: 1),
                                       Text(
                                         '${service.duration} mins',
                                         style: const TextStyle(
                                           color: Colors.white70,
-                                          fontSize: 12,
+                                          fontSize: 11,
                                         ),
                                       ),
                                     ],
@@ -395,14 +397,14 @@ class CustomerDashboardView extends GetView<CustomerController> {
                                   style: TextStyle(
                                     color: isSelected ? Colors.amber : Colors.white,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                                    fontSize: 13,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 10),
                                 Icon(
                                   isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
                                   color: isSelected ? Colors.amber : Colors.white30,
-                                  size: 20,
+                                  size: 18,
                                 ),
                               ],
                             ),
