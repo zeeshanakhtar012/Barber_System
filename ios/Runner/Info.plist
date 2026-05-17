@@ -79,5 +79,11 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app requires access to your photo library to select and upload shop logos, user avatars, and service images.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires access to your camera to take photos of your services, shop, or avatar.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app requires access to your microphone to capture video for service previews.</string>
 </dict>
 </plist>
