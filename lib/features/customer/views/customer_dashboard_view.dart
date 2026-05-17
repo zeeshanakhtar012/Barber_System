@@ -321,18 +321,93 @@ class CustomerDashboardView extends GetView<CustomerController> {
                 if (controller.shopServices.isEmpty)
                   const Text('Loading services...', style: TextStyle(color: Colors.white54))
                 else
-                  Wrap(
-                    spacing: 8.0,
+                  Column(
                     children: controller.shopServices.map((service) {
                       final isSelected = controller.selectedServices.contains(service);
-                      return FilterChip(
-                        label: Text('${service.name} - \$${service.price}'),
-                        selected: isSelected,
-                        selectedColor: Colors.amber,
-                        checkmarkColor: Colors.black,
-                        labelStyle: TextStyle(color: isSelected ? Colors.black : Colors.white),
-                        backgroundColor: Colors.black26,
-                        onSelected: (_) => controller.toggleService(service),
+                      final hasImage = service.images.isNotEmpty;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: InkWell(
+                          onTap: () => controller.toggleService(service),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.amber.withOpacity(0.12) : Colors.black12,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSelected ? Colors.amber : Colors.white10,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    width: 50,
+                                    height: 50,
+                                    color: Colors.black26,
+                                    child: hasImage
+                                        ? Image.network(
+                                            service.images.first,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => const Icon(
+                                              Icons.cut,
+                                              color: Colors.amber,
+                                              size: 20,
+                                            ),
+                                          )
+                                        : const Icon(
+                                            Icons.cut,
+                                            color: Colors.amber,
+                                            size: 20,
+                                          ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        service.name,
+                                        style: TextStyle(
+                                          color: isSelected ? Colors.amber : Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${service.duration} mins',
+                                        style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  '\$${service.price.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.amber : Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Icon(
+                                  isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                                  color: isSelected ? Colors.amber : Colors.white30,
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       );
                     }).toList(),
                   ),

@@ -78,7 +78,7 @@ class BarberController extends GetxController {
     }
   }
 
-  Future<void> addService(String name, int duration, double price) async {
+  Future<void> addService(String name, int duration, double price, List<String> images) async {
     if (currentShop.value == null) return;
     try {
       isLoading.value = true;
@@ -87,12 +87,50 @@ class BarberController extends GetxController {
         'name': name,
         'duration': duration,
         'price': price,
+        'images': images,
       });
       if (res.statusCode == 201) {
         _loadServices(currentShop.value!.id);
       }
     } catch (e) {
       Get.snackbar('Error', 'Failed to add service: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> editService(String serviceId, String name, int duration, double price, List<String> images) async {
+    if (currentShop.value == null) return;
+    try {
+      isLoading.value = true;
+      final res = await _api.put('/services/$serviceId', data: {
+        'name': name,
+        'duration': duration,
+        'price': price,
+        'images': images,
+      });
+      if (res.statusCode == 200) {
+        Get.snackbar('Success', 'Service updated successfully.');
+        _loadServices(currentShop.value!.id);
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to update service: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> deleteService(String serviceId) async {
+    if (currentShop.value == null) return;
+    try {
+      isLoading.value = true;
+      final res = await _api.delete('/services/$serviceId');
+      if (res.statusCode == 200) {
+        Get.snackbar('Success', 'Service deleted successfully.');
+        _loadServices(currentShop.value!.id);
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to delete service: $e');
     } finally {
       isLoading.value = false;
     }

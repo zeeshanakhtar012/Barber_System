@@ -4,6 +4,7 @@ class ServiceModel {
   final String name;
   final int duration; // in minutes
   final double price;
+  final List<String> images;
 
   ServiceModel({
     required this.id,
@@ -11,6 +12,7 @@ class ServiceModel {
     required this.name,
     required this.duration,
     required this.price,
+    this.images = const [],
   });
 
   factory ServiceModel.fromJson(Map<String, dynamic> json, String id) {
@@ -20,6 +22,7 @@ class ServiceModel {
       name: json['name'] ?? '',
       duration: json['duration'] ?? 30,
       price: (json['price'] ?? 0.0).toDouble(),
+      images: json['images'] != null ? List<String>.from(json['images']) : [],
     );
   }
 
@@ -29,6 +32,7 @@ class ServiceModel {
       'name': name,
       'duration': duration,
       'price': price,
+      'images': images,
     };
   }
 }

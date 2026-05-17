@@ -74,6 +74,10 @@ class ApiClient extends GetxService {
     return await dio.patch(path, data: data);
   }
 
+  Future<Response> put(String path, {dynamic data}) async {
+    return await dio.put(path, data: data);
+  }
+
   Future<Response> delete(String path) async {
     return await dio.delete(path);
   }
