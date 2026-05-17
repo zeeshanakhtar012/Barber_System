@@ -6,6 +6,7 @@ import 'package:barber_saas/data/models/shop_model.dart';
 import 'package:barber_saas/data/models/service_model.dart';
 import 'package:barber_saas/data/models/appointment_model.dart';
 import 'package:barber_saas/data/models/user_model.dart';
+import 'package:dio/dio.dart' as dio_pkg;
 
 class BarberController extends GetxController {
   final ApiClient _api = Get.find<ApiClient>();
@@ -211,5 +212,40 @@ class BarberController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+  Future<String?> uploadImageFile(String filePath) async {
+    try {
+      final file = await dio_pkg.MultipartFile.fromFile(filePath);
+      final formData = dio_pkg.FormData.fromMap({
+        'image': file,
+      });
+      final res = await _api.dio.post('/uploads/image', data: formData);
+      if (res.statusCode == 200) {
+        return res.data['data']['url'];
+      }
+    } catch (e) {
+      Get.snackbar('Upload Error', 'Failed to upload image: $e');
+    }
+    return null;
+  }
+
+  Future<List<String>> uploadMultipleImages(List<String> filePaths) async {
+    try {
+      final List<dio_pkg.MultipartFile> files = [];
+      for (final path in filePaths) {
+        files.add(await dio_pkg.MultipartFile.fromFile(path));
+      }
+      final formData = dio_pkg.FormData.fromMap({
+        'images': files,
+      });
+      final res = await _api.dio.post('/uploads/images', data: formData);
+      if (res.statusCode == 200) {
+        final List<dynamic> urls = res.data['data']['urls'];
+        return urls.map((u) => u.toString()).toList();
+      }
+    } catch (e) {
+      Get.snackbar('Upload Error', 'Failed to upload images: $e');
+    }
+    return [];
   }
 }

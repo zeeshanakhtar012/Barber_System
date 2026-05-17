@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:barber_saas/features/barber/controllers/barber_controller.dart';
 import 'package:barber_saas/features/auth/controllers/auth_controller.dart';
 import 'package:barber_saas/shared/widgets/glass_container.dart';
@@ -71,6 +72,68 @@ class _BarberSettingsViewState extends State<BarberSettingsView> {
     adminNameCtrl.dispose();
     adminAvatarCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadImage(TextEditingController targetController) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? file = await picker.pickImage(source: ImageSource.gallery);
+      if (file == null) return;
+
+      // Show a sleek dark theme loading dialog
+      Get.dialog(
+        const Center(
+          child: GlassContainer(
+            opacity: 0.2,
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Colors.amber),
+                  SizedBox(height: 16),
+                  Text(
+                    'Uploading Image...',
+                    style: TextStyle(color: Colors.white, fontSize: 14, decoration: TextDecoration.none),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        barrierDismissible: false,
+      );
+
+      final String? uploadedUrl = await controller.uploadImageFile(file.path);
+      Get.back(); // Dismiss loader
+
+      if (uploadedUrl != null) {
+        setState(() {
+          targetController.text = uploadedUrl;
+        });
+        Get.snackbar(
+          'Success',
+          'Image uploaded and URL applied successfully!',
+          backgroundColor: Colors.green.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
+      } else {
+        Get.snackbar(
+          'Error',
+          'Failed to upload image to server.',
+          backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      Get.back(); // Dismiss loader if active
+      Get.snackbar(
+        'Error',
+        'An error occurred during selection: $e',
+        backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
+        colorText: Colors.white,
+      );
+    }
   }
 
   @override
@@ -182,7 +245,7 @@ class _BarberSettingsViewState extends State<BarberSettingsView> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Update your shop branding and owner profile details. Email and password changes are disabled for platform security.',
+                      'Update your shop logo and owner profile details. You can enter an image URL directly OR click the gallery button to select and upload a picture from your device.',
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                     const SizedBox(height: 24),
@@ -196,6 +259,7 @@ class _BarberSettingsViewState extends State<BarberSettingsView> {
                       shopLogoCtrl,
                       'Shop Logo URL',
                       Icons.image_outlined,
+                      onUploadPressed: () => _pickAndUploadImage(shopLogoCtrl),
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
@@ -208,6 +272,7 @@ class _BarberSettingsViewState extends State<BarberSettingsView> {
                       adminAvatarCtrl,
                       'Admin Profile Photo URL',
                       Icons.face_unlock_outlined,
+                      onUploadPressed: () => _pickAndUploadImage(adminAvatarCtrl),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
@@ -342,6 +407,7 @@ class _BarberSettingsViewState extends State<BarberSettingsView> {
     String label,
     IconData icon, {
     bool isNumber = false,
+    VoidCallback? onUploadPressed,
   }) {
     return TextField(
       controller: textController,
@@ -351,6 +417,13 @@ class _BarberSettingsViewState extends State<BarberSettingsView> {
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white70),
         prefixIcon: Icon(icon, color: Colors.white70),
+        suffixIcon: onUploadPressed != null
+            ? IconButton(
+                icon: const Icon(Icons.photo_library_outlined, color: Colors.amber),
+                tooltip: 'Pick from Gallery',
+                onPressed: onUploadPressed,
+              )
+            : null,
         enabledBorder: OutlineInputBorder(
           borderSide: const BorderSide(color: Colors.white30),
           borderRadius: BorderRadius.circular(12),

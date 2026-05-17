@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:barber_saas/features/barber/controllers/barber_controller.dart';
 import 'package:barber_saas/shared/widgets/glass_container.dart';
 import 'package:barber_saas/data/models/service_model.dart';
@@ -99,7 +100,7 @@ class BarberServicesView extends GetView<BarberController> {
                                   ? const Icon(Icons.cut, color: Colors.amber, size: 20)
                                   : null,
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,52 +109,45 @@ class BarberServicesView extends GetView<BarberController> {
                                     service.name,
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      fontWeight: FontWeight.bold,
                                       fontSize: 14,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        '${service.duration} mins',
-                                        style: const TextStyle(color: Colors.white70, fontSize: 11),
-                                      ),
-                                      if (service.images.length > 1) ...[
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          '+${service.images.length - 1} photos',
-                                          style: const TextStyle(color: Colors.amber, fontSize: 10),
-                                        ),
-                                      ]
-                                    ],
+                                  Text(
+                                    '${service.duration} mins • \$${service.price.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '\$${service.price.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                color: Colors.amber,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
                             IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.white70, size: 18),
-                              constraints: const BoxConstraints(),
-                              padding: const EdgeInsets.all(6),
+                              icon: const Icon(Icons.edit, color: Colors.amber, size: 18),
                               onPressed: () => _showServiceDialog(context, service: service),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.redAccent, size: 18),
-                              constraints: const BoxConstraints(),
-                              padding: const EdgeInsets.all(6),
-                              onPressed: () => _showDeleteConfirmation(service),
+                              onPressed: () {
+                                Get.defaultDialog(
+                                  title: 'Delete Service',
+                                  titleStyle: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                  middleText: 'Are you sure you want to delete ${service.name}?',
+                                  middleTextStyle: const TextStyle(color: Colors.white70, fontSize: 14),
+                                  backgroundColor: const Color(0xFF2D2D44),
+                                  textCancel: 'Cancel',
+                                  cancelTextColor: Colors.white70,
+                                  textConfirm: 'Delete',
+                                  confirmTextColor: Colors.black,
+                                  buttonColor: Colors.redAccent,
+                                  onConfirm: () {
+                                    controller.deleteService(service.id);
+                                    Get.back();
+                                  },
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -165,55 +159,6 @@ class BarberServicesView extends GetView<BarberController> {
             }),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showDeleteConfirmation(ServiceModel service) {
-    Get.dialog(
-      Dialog(
-        backgroundColor: Colors.transparent,
-        child: GlassContainer(
-          opacity: 0.25,
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 48),
-                const SizedBox(height: 16),
-                const Text(
-                  'Delete Service',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Are you sure you want to delete "${service.name}"?',
-                  style: const TextStyle(color: Colors.white70),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                      onPressed: () {
-                        controller.deleteService(service.id);
-                        Get.back();
-                      },
-                      child: const Text('Delete', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                )
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -297,7 +242,7 @@ class BarberServicesView extends GetView<BarberController> {
                         width: double.infinity,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: Colors.white10),
                         ),
@@ -452,24 +397,76 @@ class BarberServicesView extends GetView<BarberController> {
                     ),
                   ),
                   
-                  // Mock Local Upload Button
+                  // Real Gallery Upload Button
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.camera_alt, color: Colors.amber, size: 18),
-                      label: const Text('Simulate Local Upload', style: TextStyle(color: Colors.white, fontSize: 12)),
+                      icon: const Icon(Icons.photo_library_outlined, color: Colors.amber, size: 18),
+                      label: const Text('Upload from Gallery', style: TextStyle(color: Colors.white, fontSize: 12)),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.white24),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      onPressed: () {
-                        // Generate a beautiful unique random unsplash photo url
-                        final randomId = DateTime.now().millisecondsSinceEpoch % 1000;
-                        final mockUrl = 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&auto=format&fit=crop&q=80&rand=$randomId';
-                        dialogImages.add(mockUrl);
-                        Get.snackbar('Mock Upload Successful', 'Mocked image uploaded locally and optimized.', backgroundColor: Colors.greenAccent, colorText: Colors.black);
+                      onPressed: () async {
+                        try {
+                          final ImagePicker picker = ImagePicker();
+                          final XFile? file = await picker.pickImage(source: ImageSource.gallery);
+                          if (file == null) return;
+
+                          // Show elegant progress indicator
+                          Get.dialog(
+                            const Center(
+                              child: GlassContainer(
+                                opacity: 0.2,
+                                child: Padding(
+                                  padding: EdgeInsets.all(24.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircularProgressIndicator(color: Colors.amber),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Uploading to Server...',
+                                        style: TextStyle(color: Colors.white, fontSize: 14, decoration: TextDecoration.none),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            barrierDismissible: false,
+                          );
+
+                          final String? uploadedUrl = await controller.uploadImageFile(file.path);
+                          Get.back(); // Dismiss progress dialog
+
+                          if (uploadedUrl != null) {
+                            dialogImages.add(uploadedUrl);
+                            Get.snackbar(
+                              'Upload Successful',
+                              'Service image uploaded successfully!',
+                              backgroundColor: Colors.green.withValues(alpha: 0.8),
+                              colorText: Colors.white,
+                            );
+                          } else {
+                            Get.snackbar(
+                              'Upload Failed',
+                              'Could not upload image to server.',
+                              backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
+                              colorText: Colors.white,
+                            );
+                          }
+                        } catch (e) {
+                          Get.back();
+                          Get.snackbar(
+                            'Error',
+                            'An error occurred: $e',
+                            backgroundColor: Colors.redAccent.withValues(alpha: 0.8),
+                            colorText: Colors.white,
+                          );
+                        }
                       },
                     ),
                   ),
