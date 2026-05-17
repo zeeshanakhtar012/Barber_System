@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:barber_saas/core/network/socket_client.dart';
 import 'package:barber_saas/data/models/notification_model.dart';
 import 'package:barber_saas/core/network/api_client.dart';
 import 'package:barber_saas/features/auth/controllers/auth_controller.dart';
@@ -16,9 +18,32 @@ class NotificationService extends GetxService {
     ever(_authController.currentUser, (user) {
       if (user != null) {
         _fetchNotifications(user.id);
+        
+        // Connect real-time notifications namespace
+        final socket = Get.find<SocketClient>();
+        socket.connectNotifications(user.id);
+        
+        socket.notificationSocket.off('new_notification');
+        socket.notificationSocket.on('new_notification', (data) {
+          _fetchNotifications(user.id);
+          Get.snackbar(
+            data['title'] ?? 'New Alert!',
+            data['body'] ?? '',
+            backgroundColor: Colors.amber,
+            colorText: Colors.black,
+            snackPosition: SnackPosition.TOP,
+            margin: const EdgeInsets.all(16),
+            borderRadius: 12,
+            icon: const Icon(Icons.notifications_active, color: Colors.black),
+            duration: const Duration(seconds: 4),
+          );
+        });
       } else {
         notifications.clear();
         unreadCount.value = 0;
+        try {
+          Get.find<SocketClient>().disconnectNotifications();
+        } catch (_) {}
       }
     });
   }

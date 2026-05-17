@@ -7,4 +7,5 @@ abstract class AppRoutes {
   static const String superAdminDashboard = '/super-admin/dashboard';
   static const String barberAdminDashboard = '/barber-admin/dashboard';
   static const String customerDashboard = '/customer/dashboard';
+  static const String shopDeepLink = '/shop/:id';
 }

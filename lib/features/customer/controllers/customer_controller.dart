@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barber_saas/core/network/api_client.dart';
 import 'package:barber_saas/core/network/socket_client.dart';
 import 'package:barber_saas/data/models/shop_model.dart';
@@ -16,6 +17,7 @@ class CustomerController extends GetxController {
   final RxList<AppointmentModel> myAppointments = <AppointmentModel>[].obs;
   
   final Rx<ShopModel?> selectedShop = Rx<ShopModel?>(null);
+  final Rx<String?> preferredShopId = Rx<String?>(null);
   final RxList<ServiceModel> shopServices = <ServiceModel>[].obs;
   final RxList<ServiceModel> selectedServices = <ServiceModel>[].obs;
   final RxInt estimatedWaitTime = 0.obs;
@@ -25,21 +27,36 @@ class CustomerController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _loadPreferences();
+    _loadMyAppointments();
+  }
+
+  void _loadPreferences() {
     if (AppConfig.targetShopId != null) {
+      preferredShopId.value = AppConfig.targetShopId;
       _loadSingleTargetShop(AppConfig.targetShopId!);
+      return;
+    }
+
+    final prefs = Get.find<SharedPreferences>();
+    final storedShopId = prefs.getString('preferred_shop_id');
+    preferredShopId.value = storedShopId;
+
+    if (storedShopId != null) {
+      _loadSingleTargetShop(storedShopId);
     } else {
       _loadAvailableShops();
     }
-    _loadMyAppointments();
   }
 
   void _loadSingleTargetShop(String shopId) async {
     try {
       final res = await _api.get('/shops/$shopId');
-        final data = res.data is Map ? res.data['data'] : res.data;
-        final shop = ShopModel.fromJson(data, data['_id']);
-        selectedShop.value = shop;
-        _calculateWaitTime(shop.id);
+      final data = res.data is Map ? res.data['data'] : res.data;
+      final shop = ShopModel.fromJson(data, data['_id']);
+      selectedShop.value = shop;
+      _socket.connectQueue(shop.id);
+      _calculateWaitTime(shop.id);
     } catch (e) {
       debugPrint('Failed to load shop: $e');
     }
@@ -132,5 +149,20 @@ class CustomerController extends GetxController {
     } catch (e) {
       Get.snackbar('Error', 'Could not cancel booking: $e');
     }
+  }
+
+  Future<void> setPreferredShop(String shopId) async {
+    final prefs = Get.find<SharedPreferences>();
+    await prefs.setString('preferred_shop_id', shopId);
+    preferredShopId.value = shopId;
+    _loadSingleTargetShop(shopId);
+  }
+
+  Future<void> clearPreferredShop() async {
+    final prefs = Get.find<SharedPreferences>();
+    await prefs.remove('preferred_shop_id');
+    preferredShopId.value = null;
+    selectedShop.value = null;
+    _loadAvailableShops();
   }
 }

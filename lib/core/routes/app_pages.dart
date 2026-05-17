@@ -11,6 +11,7 @@ import 'package:barber_saas/features/barber/bindings/barber_binding.dart';
 import 'package:barber_saas/features/barber/views/barber_dashboard_view.dart';
 import 'package:barber_saas/features/customer/bindings/customer_binding.dart';
 import 'package:barber_saas/features/customer/views/customer_dashboard_view.dart';
+import 'package:barber_saas/features/customer/views/shop_deeplink_handler.dart';
 
 class AppPages {
   static final pages = [
@@ -47,6 +48,10 @@ class AppPages {
       name: AppRoutes.customerDashboard,
       page: () => const CustomerDashboardView(),
       binding: CustomerBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.shopDeepLink,
+      page: () => const ShopDeepLinkHandler(),
     ),
   ];
 }

@@ -5,4 +5,9 @@ class AppConfig {
   /// Paste the exact Firestore Document ID for that shop below.
   /// Example: static const String? targetShopId = "YOUR_SHOP_ID_HERE";
   static const String? targetShopId = null;
+
+  /// Custom URL scheme used for whitelabel customer sharing.
+  /// Change this for each standalone app if you want a dedicated custom deep link.
+  /// Example: 'rayanbarber'
+  static const String appScheme = 'barberspace';
 }

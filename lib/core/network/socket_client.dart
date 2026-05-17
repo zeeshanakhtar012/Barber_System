@@ -34,4 +34,17 @@ class SocketClient extends GetxService {
       queueSocket.disconnect();
     }
   }
+
+  void connectNotifications(String userId) {
+    if (!notificationSocket.connected) {
+      notificationSocket.connect();
+    }
+    notificationSocket.emit('join_notification_room', userId);
+  }
+
+  void disconnectNotifications() {
+    if (notificationSocket.connected) {
+      notificationSocket.disconnect();
+    }
+  }
 }

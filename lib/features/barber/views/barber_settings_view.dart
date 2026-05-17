@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:barber_saas/features/barber/controllers/barber_controller.dart';
 import 'package:barber_saas/shared/widgets/glass_container.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:barber_saas/core/config/app_config.dart';
 
 class BarberSettingsView extends GetView<BarberController> {
   BarberSettingsView({super.key});
@@ -103,6 +106,77 @@ class BarberSettingsView extends GetView<BarberController> {
                           ),
                   ),
                 ),
+              ),
+              const SizedBox(height: 24),
+              const Divider(color: Colors.white24),
+              const SizedBox(height: 16),
+              const Text(
+                'Share Your Shop',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Let your customers scan the QR code or click the share link to view your live queue and book appointments directly!',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Obx(() {
+                  final shop = controller.currentShop.value;
+                  if (shop == null) return const SizedBox.shrink();
+                  final String deepLink = '${AppConfig.appScheme}://shop/${shop.id}';
+                  return Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: QrImageView(
+                          data: deepLink,
+                          version: QrVersions.auto,
+                          size: 160.0,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Shop Link: ${AppConfig.appScheme}://shop/${shop.id}',
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.share, color: Colors.black),
+                        label: const Text('Share Shop Link'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.amber,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Share.share(
+                            'Check out our live queue and book your appointment at ${shop.name}! $deepLink',
+                            subject: 'Book at ${shop.name}',
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                }),
               ),
             ],
           ),
